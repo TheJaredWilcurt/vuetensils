@@ -2,7 +2,7 @@
 
 A convenient sidebar that can be toggled on or off. When opened, it traps the user's focus so that keyboard navigation will remain within the sidebar until it is closed. It also supports being closed by pressing the ESC key.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VDrawer/VDrawer.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VDrawer/VDrawer.vue)
 
 Features:
 
@@ -255,7 +255,7 @@ export default {
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ bg: 'bg-class', content: 'content-class' }"

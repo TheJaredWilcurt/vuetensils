@@ -4,7 +4,7 @@
 
 A date picker with accessibility baked in.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VDate/VDate.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VDate/VDate.vue)
 
 Features:
 - Manages ARIA roles, labels, and attributes.
@@ -110,7 +110,7 @@ export default {
 
 <!-- ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', content: 'content-class' }"

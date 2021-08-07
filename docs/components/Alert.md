@@ -2,13 +2,13 @@
 
 A simple component for notifiying users of specific information. Good for informative snippets, error messages, and more. It can be shown or hidden dynamically, and even supports auto-hiding after a given time.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VAlert/VAlert.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VAlert/VAlert.vue)
 
 Features:
 
-- Includes ARIA `role="alert"` attribute
-- Option for dismiss button
-- Option for timeout
+- Includes ARIA `role="alert"` attribute.
+- Option for dismiss button.
+- Option for timeout.
 
 ## Installation
 
@@ -237,7 +237,7 @@ export default {
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', dismiss: 'dismiss-class' }"

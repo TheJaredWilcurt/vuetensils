@@ -2,7 +2,7 @@
 
 Vue directive to bring focus to an element when it mounts to the page.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/directives/autofocus.js)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/directives/autofocus.js)
 
 ## Installation
 
@@ -35,12 +35,10 @@ Local install:
 <template>
   <div>
     <p>Check it out, this input is focused whenever the page loads</p>
-    <form>
-      <label>
-        Some label
-        <input v-autofocus />
-      </label>
-    </form>
+    <label>
+      Some label
+      <input v-autofocus />
+    </label>
   </div>
 </template>
 ```

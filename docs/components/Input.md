@@ -2,7 +2,7 @@
 
 Input component that simplifies accessibility and validation.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VInput/VInput.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VInput/VInput.vue)
 
 **Features:**
 
@@ -49,8 +49,14 @@ export default {
       name="name"
       required
       minlength="2"
+      :errors="{
+        minlength(l) {
+          return `Test ` + l
+        }
+      }"
     >
       <template #description="input">
+{{ input }}
         <template v-if="input.error">
           <small v-if="input.invalid.required">
             This field is required.
@@ -79,6 +85,10 @@ export default {
         </template>
       </template>
     </VInput>
+
+    <button type="submit">
+      Submit
+    </button>
   </form>
 </template>
 
@@ -169,6 +179,9 @@ Supports all HTML [input types](https://developer.mozilla.org/en-US/docs/Web/HTM
       multiple
     />
     <pre>{{ selected }}</pre>
+    <button type="submit">
+      Submit
+    </button>
   </form>
 </template>
 
@@ -257,6 +270,10 @@ Note that client-side validation is never a substitute for server-side validatio
         label="yo"
         required
       />
+
+      <button type="submit" :disabled="!form.valid">
+        Submit
+      </button>
     </template>
   </VForm>
 </template>
@@ -272,7 +289,7 @@ export default {
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', fieldset: 'fieldset-class', label: 'label-class', text: 'text-class', input: 'input-class', description: 'description-class' }"

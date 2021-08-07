@@ -76,9 +76,11 @@
         @blur.once="dirty = true"
         v-on="$listeners"
       >
-        <option v-for="(option, i) in computedOptions" :key="i" v-bind="option">
-          {{ option.label }}
-        </option>
+        <slot name="options">
+          <option v-for="(option, i) in computedOptions" :key="i" v-bind="option">
+            {{ option.label }}
+          </option>
+        </slot>
       </select>
 
       <textarea
@@ -110,7 +112,7 @@
       <!-- @slot Scoped slot for the input description. Provides the validation state. -->
       <slot
         name="description"
-        v-bind="{ valid, dirty, error, invalid, anyInvalid }"
+        v-bind="{ valid, dirty, error, invalid, anyInvalid, errors: errorMessages }"
       />
     </div>
   </div>
@@ -118,6 +120,12 @@
 
 <script>
 import { randomString } from '../../utils';
+
+/**
+ * TODO:
+ * Provide prop for error,invalid classes on input
+ * Remove span from labels (breaking)
+ */
 
 /**
  * Input component that automatically includes labels, validation, and aria descriptions for any errors.
@@ -140,6 +148,14 @@ export default {
     },
 
     /**
+     * Every input should have a label with the exception of `radio` which supports labels for the `options` prop.
+     */
+    name: {
+      type: String,
+      required: true,
+    },
+
+    /**
      * The input value. Works for all inputs except type `radio`. See `options` prop.
      */
     value: {
@@ -153,6 +169,11 @@ export default {
     options: {
       type: Array,
       default: () => [],
+    },
+
+    errors: {
+      type: Object,
+      default: () => ({}),
     },
 
     classes: {
@@ -173,12 +194,13 @@ export default {
 
   computed: {
     bind() {
-      const { id, valid, error, classes, $attrs } = this;
+      const { id, name, valid, error, classes, $attrs } = this;
       const attrs = {
         'aria-invalid': !valid,
         'aria-describedby': error && `${id}__description`,
         ...$attrs,
         id: `${id}__input`,
+        name: name,
         class: ['vts-input__input', classes.input],
       };
 
@@ -192,7 +214,7 @@ export default {
         item = typeof item === 'object' ? item : { value: item };
         return Object.assign(item, $attrs, {
           label: item.label || item.value,
-          name: item.name || id,
+          name: $attrs.name || id,
           value: item.value,
           checked:
             localValue !== undefined ? item.value === localValue : item.checked,
@@ -208,6 +230,29 @@ export default {
     error() {
       return !this.valid && this.dirty;
     },
+
+    errorMessages() {
+      const { invalid, errors, $attrs } = this;
+      const errorMessages = [];
+
+      const errorsMap = new Map(Object.entries(errors || {}));
+
+      errorsMap.forEach((value, key) => {
+        if (!invalid[key]) return;
+
+        const errorHandler = errors.get(key);
+        const attrName = key.replace('length', 'Length'); // for minLength and maxLength
+
+        const errorMessage =
+          typeof errorHandler === 'string'
+            ? errorHandler
+            : errorHandler($attrs[attrName]);
+
+        errorMessages.push(errorMessage);
+      });
+
+      return errorMessages;
+    }
   },
 
   watch: {
@@ -226,9 +271,7 @@ export default {
   },
 
   created() {
-    const { id, name } = this.$attrs;
-    this.id = id || 'vts-' + randomString(4);
-    this.name = name || this.id;
+    this.id = this.$attrs.id || 'vts-' + randomString(4);
   },
 
   mounted() {
@@ -240,6 +283,7 @@ export default {
       let input = this.$refs.input;
 
       if (Array.isArray(input)) {
+        if (!input.length) return;
         input = input[0];
       }
 

@@ -2,7 +2,7 @@
 
 File selector that behaves like a native file input. However, it can be extended to behave like a drag and drop file selector.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VFile/VFile.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VFile/VFile.vue)
 
 Features:
 
@@ -185,7 +185,7 @@ You can use these events to style any element within the root.
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', input: 'input-class', text: 'text-class', dropzone: 'dropzone-class' }"

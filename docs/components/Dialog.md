@@ -2,7 +2,7 @@
 
 A dialog component for showing users content which overlays the rest of the application. When opened, it traps the user's focus so that keyboard navigation will remain within the dialog until it is closed. It supports being closed by clicking outside the dialog content or pressing the ESC key.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VDialog/VDialog.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VDialog/VDialog.vue)
 
 Features:
 
@@ -302,7 +302,7 @@ export default {
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', content: 'content-class' }"

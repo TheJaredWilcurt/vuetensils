@@ -2,7 +2,7 @@
 
 Toggle the visibility of content. Useful for something like an FAQ page, for example. Includes ARIA attributes for expandable content and is keyboard friendly.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VToggle/VToggle.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VToggle/VToggle.vue)
 
 ## Installation
 
@@ -116,7 +116,7 @@ You can access the `open` status through the scoped slots.
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', label: 'label-class', content: 'content-class' }"

@@ -4,7 +4,7 @@
 
 A component that let's you add a tooltip to an element.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VTooltip/VTooltip.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VTooltip/VTooltip.vue)
 
 Features:
 - Supports keyboard navigation for the target DOM node.
@@ -113,7 +113,7 @@ Hovering over the target will not do anything, but you can click on it or tab to
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', content: 'content-class' }"

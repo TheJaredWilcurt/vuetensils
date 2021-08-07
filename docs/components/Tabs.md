@@ -2,7 +2,7 @@
 
 Show and hide content based on which tabs are selected.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VTabs/VTabs.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VTabs/VTabs.vue)
 
 Features:
 
@@ -106,7 +106,7 @@ export default {
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', tablist: 'tablist-class', tab: 'tab-class' }"

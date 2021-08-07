@@ -2,7 +2,7 @@
 
 Drop in replacement for the HTML `<img>` tag which supports lazy-loading. Improves load times by waiting for the image to scroll into view before actually downloading it.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VImg/VImg.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VImg/VImg.vue)
 
 Features:
 
@@ -138,7 +138,7 @@ Don't forget all the other best practices such as `srcset` attribute and `alt` t
 
 ## Custom Classes
 
-This component can accept a `classes` prop to cusomize the output HTML classes:
+This component can accept a `classes` prop to customize the output HTML classes:
 
 ```
 :classes="{ root: 'root-class', placeholder: 'placeholder-class', img: 'img-class' }"

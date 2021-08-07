@@ -1,9 +1,9 @@
 <template>
   <div :class="['vts-toggle', { 'vts-toggle--open': isOpen }, classes.root]">
     <button
-      type="button"
       :id="`${id}-label`"
       ref="label"
+      type="button"
       :disabled="disabled"
       :aria-controls="`${id}-content`"
       :aria-expanded="String(isOpen)"

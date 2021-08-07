@@ -1,6 +1,5 @@
 <template>
   <form
-    v-bind="$attrs"
     :method="$attrs.method || 'POST'"
     :class="[
       'vts-form',
@@ -10,20 +9,37 @@
         'vts-form--error': error,
       },
     ]"
-    @[event]="onEvent"
+    @[event]="validate"
+    @submit="onSubmit"
+    @blur.capture.once="dirty = true"
     v-on="$listeners"
   >
-    <slot v-bind="{ valid, dirty, error, inputs, clear }" />
+    <input
+      v-if="honeypot"
+      :name="typeof honeypot === 'string' ? honeypot : 'vts-honeypot'"
+      class="visually-hidden"
+      tabindex="-1"
+      autocomplete="off"
+      aria-hidden="true"
+    />
+
+    <slot v-bind="{ valid, dirty, error, inputs, clear, validate }" />
   </form>
 </template>
 
 <script>
-import { randomString } from '../../utils';
-
 export default {
   name: 'VForm',
   props: {
     lazy: Boolean,
+    errors: {
+      type: Object,
+      default: () => ({})
+    },
+    honeypot: {
+      type: [Boolean, String],
+      default: false,
+    }
   },
 
   data: () => ({
@@ -32,84 +48,94 @@ export default {
   }),
 
   computed: {
+    /** @return {string} */
     event() {
       return this.lazy ? 'change' : 'input';
     },
-
+    /** @return {boolean} */
     valid() {
       return !Object.values(this.localInputs).find(input => !input.valid);
     },
-
+    /** @return {boolean} */
     error() {
       return !this.valid && this.dirty;
     },
-
+    /** @return {object} */
     inputs() {
       const inputs = {};
-      const { localInputs } = this;
+      const { localInputs, errors } = this;
 
       for (const key in localInputs) {
-        const input = localInputs[key];
-        inputs[key] = {
-          ...input,
-          error: input.dirty && !input.valid,
+        const input = {
+          ...localInputs[key],
+          error: localInputs[key].dirty && !localInputs[key].valid,
+          errors: []
         };
+
+        const errorsMap = new Map(Object.entries(errors || {}));
+
+        errorsMap.forEach((value, key) => {
+          if (!input.invalid[key]) return;
+
+          const errorHandler = errorsMap.get(key);
+          // console.log(errorHandler);
+          const attrName = key.replace('length', 'Length'); // for minLength and maxLength
+
+          const errorMessage =
+            typeof errorHandler === 'string'
+              ? errorHandler
+              : errorHandler(input._inputEl[attrName]);
+
+          input.errors.push(errorMessage);
+        });
+
+        inputs[key] = input;
       }
+
       return inputs;
     },
   },
 
   mounted() {
-    const els = Array.from(this.$el.querySelectorAll('input, textarea, select'));
-
-    const localInputs = {};
-
-    els.forEach(input => {
-      const name = input.name || randomString(6);
-      const validity = input.validity;
-
-      localInputs[name] = {
-        value: input.value,
-        valid: input.validity.valid,
-        dirty: false,
-        invalid: {
-          type: validity.typeMismatch,
-          required: validity.valueMissing,
-          minlength: validity.tooShort,
-          maxlength: validity.tooLong,
-          min: validity.rangeOverflow,
-          max: validity.rangeUnderflow,
-          pattern: validity.patternMismatch,
-        },
-      };
-
-      input.addEventListener('blur', this.onBlur, { once: true });
-      this.$once('hook:beforeDestroy', () => {
-        input.removeEventListener('blur', this.onBlur);
-      });
+    this.validate();
+    const observer = new MutationObserver(this.validate);
+    observer.observe(this.$el, {
+      childList: true,
+      subtree: true 
     });
-    this.localInputs = localInputs;
+    this.$once('hook:beforeDestroy', () => {
+      observer.disconnect();
+    });
   },
 
   methods: {
-    onEvent({ target }) {
-      const { localInputs } = this;
-      const validity = target.validity;
+    validate() {
+      /** @type {NodeListOf<HTMLInputElement>} */
+      const els = this.$el.querySelectorAll('input, textarea, select');
 
-      localInputs[target.name] = {
-        ...localInputs[target.name],
-        value: target.value,
-        valid: target.validity.valid,
-        invalid: {
-          type: validity.typeMismatch,
-          required: validity.valueMissing,
-          minlength: validity.tooShort,
-          maxlength: validity.tooLong,
-          min: validity.rangeOverflow,
-          max: validity.rangeUnderflow,
-          pattern: validity.patternMismatch,
-        },
-      };
+      const localInputs = {};
+
+      els.forEach(input => {
+        const { name, id, validity } = input;
+        if (!name && !id) return;
+
+        localInputs[name || id] = {
+          _inputEl: input,
+          value: input.value,
+          valid: validity.valid,
+          dirty: false,
+          invalid: {
+            type: validity.typeMismatch,
+            required: validity.valueMissing,
+            minlength: validity.tooShort,
+            maxlength: validity.tooLong,
+            min: validity.rangeOverflow,
+            max: validity.rangeUnderflow,
+            pattern: validity.patternMismatch,
+          },
+        };
+
+      });
       this.localInputs = localInputs;
     },
     onBlur({ target }) {
@@ -118,13 +144,39 @@ export default {
     },
 
     clear() {
+      /** @type {HTMLInputElement[]} */
       const els = Array.from(
         this.$el.querySelectorAll('input, textarea, select')
       );
       els.forEach(input => {
-        input.value = '';
+        if(['radio', 'checkbox'].includes(input.type)) {
+          input.checked = false;
+        } else {
+          input.value = '';
+        }
       });
     },
+
+    onSubmit(event) {
+      if(!event.target.checkValidity()) {
+        this.$emit('invalid', event);
+        return;
+      }
+      this.$emit('valid', event);
+    }
   },
 };
 </script>
+
+<style>
+.vts-visually-hidden {
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+}
+</style>

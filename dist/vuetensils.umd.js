@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Vuetensils = {}));
-}(this, (function (exports) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@vue/composition-api')) :
+  typeof define === 'function' && define.amd ? define(['exports', '@vue/composition-api'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Vuetensils = {}, global.compositionApi));
+}(this, (function (exports, compositionApi) { 'use strict';
 
   /**
    * Detects if a VDOM element is a <RouterLink>, <a>, or <button>
@@ -39,6 +39,14 @@
         on: listeners});
       if (tag === 'RouterLink') {
         options.nativeOn = listeners;
+      }
+      /**
+       * Supress Vue warnings of .native modifiers
+       * Reference comment and issue #9999 on Vuetify
+       * https://github.com/vuetifyjs/vuetify/issues/9999#issuecomment-579434865
+       */
+      if (tag === 'button') {
+        options.nativeOn = null;
       }
 
       return h(tag, options, children);
@@ -180,6 +188,18 @@
   //
   //
   //
+
+  /**
+   * NOTES Concerning :visible prop. 
+   * Per W3C specifications:
+   * https://www.w3.org/TR/wai-aria-practices/#alert
+   * --
+   * "It is also important to avoid designing alerts that disappear automatically. 
+   * An alert that disappears too quickly can lead to failure to meet WCAG 2.0 success criterion 2.2.3. 
+   * Another critical design consideration is the frequency of interruption caused by alerts. 
+   * Frequent interruptions inhibit usability for people with visual and cognitive disabilities, 
+   * which makes meeting the requirements of WCAG 2.0 success criterion 2.2.4 more difficult."
+   */
 
   /**
    * A simple component for notifiying users of specific information. Good for informative snippets, error messages, and more. It can be shown or hidden dynamically, and even supports auto-hiding after a given time.
@@ -338,86 +358,8 @@
       undefined
     );
 
-  var FOCUSABLE = [
-    'a[href]:not([tabindex^="-"])',
-    'area[href]:not([tabindex^="-"])',
-    'input:not([disabled]):not([type="hidden"]):not([aria-hidden]):not([tabindex^="-"])',
-    'select:not([disabled]):not([aria-hidden]):not([tabindex^="-"])',
-    'textarea:not([disabled]):not([aria-hidden]):not([tabindex^="-"])',
-    'button:not([disabled]):not([aria-hidden]):not([tabindex^="-"]):not([tabindex^="-"])',
-    'iframe:not([tabindex^="-"])',
-    'object:not([tabindex^="-"])',
-    'embed:not([tabindex^="-"])',
-    '[contenteditable]:not([tabindex^="-"])',
-    '[tabindex]:not([tabindex^="-"])' ];
-
-  /**
-   * Generates a random string of defined length based on
-   * a string of allowed characters.
-   *
-   * @param  {number} length  How many random characters will be in the returned string. Defaults to 10
-   * @param  {string} allowed Which characters can be used when creating the random string. Defaults to A-Z,a-z,0-9
-   * @return {string}         A string of random characters
-   */
-  function randomString(
-    length,
-    allowed
-  ) {
-    if ( length === void 0 ) length = 10;
-    if ( allowed === void 0 ) allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-    var result = '';
-    for (var i = 0; i < length; i++) {
-      result += allowed.charAt(Math.floor(Math.random() * allowed.length));
-    }
-    return result;
-  }
-
-  /**
-   * If multiple elements are passed into a slot, this wraps them in a div
-   *
-   * @param  {Function} h     hyperscript markup from Vue render function
-   * @param  {Array}    slot  Array of VDOM nodes passed into component slot
-   * @return {Array}          VDOM node of the original Slot content or it wrapped in a div
-   */
-  function safeSlot(h, slot) {
-    return slot && slot.length > 1 ? h('div', slot) : slot;
-  }
-
-  /**
-   * [applyFocusTrap description]
-   *
-   * @param  {HTMLElement} el    [description]
-   * @param  {Event}       event [description]
-   * @return {undefined}         [description]
-   */
-  function applyFocusTrap(el, event) {
-    var focusable = Array.from(el.querySelectorAll(FOCUSABLE));
-
-    if (!focusable.length) {
-      event.preventDefault();
-      return;
-    }
-
-    if (!el.contains(document.activeElement)) {
-      event.preventDefault();
-      focusable[0].focus();
-    } else {
-      var focusedItemIndex = focusable.indexOf(document.activeElement);
-
-      if (event.shiftKey && focusedItemIndex === 0) {
-        focusable[focusable.length - 1].focus();
-        event.preventDefault();
-      }
-
-      if (!event.shiftKey && focusedItemIndex === focusable.length - 1) {
-        focusable[0].focus();
-        event.preventDefault();
-      }
-    }
-  }
-
   //
+
   /**
    * A renderless component for awaiting promises to resolve;
    * great for making HTTP requests. Supports showing pending,
@@ -527,7 +469,7 @@
       },
     },
 
-    render: function render(h) {
+    render: function render() {
       var ref = this;
       var pending = ref.pending;
       var error = ref.error;
@@ -544,27 +486,27 @@
       var defaultSlot = this.$scopedSlots.default;
 
       if (pending && pendingSlot) {
-        return safeSlot(h, pendingSlot());
+        return pendingSlot();
       }
 
       if (done && error && rejectedSlot) {
-        return safeSlot(h, rejectedSlot(error));
+        return rejectedSlot(error);
       }
 
       if (done && !error && resolvedSlot) {
-        return safeSlot(h, resolvedSlot(results));
+        return resolvedSlot(results);
       }
 
       if (!defaultSlot) { return; }
 
-      return safeSlot(
-        h,
-        defaultSlot({
-          pending: pending,
-          results: results,
-          error: error,
-        })
-      );
+      return defaultSlot({
+        pending: pending,
+        resolved: results,
+        rejected: error,
+        // TODO: update docs
+        results: results,
+        error: error,
+      });
     },
   };
 
@@ -632,7 +574,7 @@
       var tag = getTag$1(props, data);
       var options = Object.assign({}, data,
         {props: props,
-        class: ['vts-action'],
+        class: ['vts-action vts-btn', data.class],
         on: listeners});
 
       if (tag === 'RouterLink') {
@@ -863,13 +805,81 @@
     unbind: unbind,
   };
 
-  var directives = /*#__PURE__*/Object.freeze({
+  var allDirectives = /*#__PURE__*/Object.freeze({
     __proto__: null,
     autofocus: autofocus,
     clickout: clickout,
     copy: copy,
     intersect: intersect
   });
+
+  var FOCUSABLE = [
+    'a[href]:not([tabindex^="-"])',
+    'area[href]:not([tabindex^="-"])',
+    'input:not([disabled]):not([type="hidden"]):not([aria-hidden]):not([tabindex^="-"])',
+    'select:not([disabled]):not([aria-hidden]):not([tabindex^="-"])',
+    'textarea:not([disabled]):not([aria-hidden]):not([tabindex^="-"])',
+    'button:not([disabled]):not([aria-hidden]):not([tabindex^="-"]):not([tabindex^="-"])',
+    'iframe:not([tabindex^="-"])',
+    'object:not([tabindex^="-"])',
+    'embed:not([tabindex^="-"])',
+    '[contenteditable]:not([tabindex^="-"])',
+    '[tabindex]:not([tabindex^="-"])' ];
+
+  /**
+   * Generates a random string of defined length based on
+   * a string of allowed characters.
+   *
+   * @param  {number} length  How many random characters will be in the returned string. Defaults to 10
+   * @param  {string} allowed Which characters can be used when creating the random string. Defaults to A-Z,a-z,0-9
+   * @return {string}         A string of random characters
+   */
+  function randomString(
+    length,
+    allowed
+  ) {
+    if ( length === void 0 ) length = 10;
+    if ( allowed === void 0 ) allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+    var result = '';
+    for (var i = 0; i < length; i++) {
+      result += allowed.charAt(Math.floor(Math.random() * allowed.length));
+    }
+    return result;
+  }
+
+  /**
+   * [applyFocusTrap description]
+   *
+   * @param  {HTMLElement} el    [description]
+   * @param  {Event}       event [description]
+   * @return {undefined}         [description]
+   */
+  function applyFocusTrap(el, event) {
+    var focusable = Array.from(el.querySelectorAll(FOCUSABLE));
+
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+
+    if (!el.contains(document.activeElement)) {
+      event.preventDefault();
+      focusable[0].focus();
+    } else {
+      var focusedItemIndex = focusable.indexOf(document.activeElement);
+
+      if (event.shiftKey && focusedItemIndex === 0) {
+        focusable[focusable.length - 1].focus();
+        event.preventDefault();
+      }
+
+      if (!event.shiftKey && focusedItemIndex === focusable.length - 1) {
+        focusable[0].focus();
+        event.preventDefault();
+      }
+    }
+  }
 
   //
 
@@ -900,6 +910,7 @@
 
   // Based on https://www.w3.org/TR/wai-aria-practices/examples/dialog-modal/datepicker-dialog.html
   var script$4 = {
+    name: 'VDate',
     directives: {
       clickout: clickout,
     },
@@ -1295,7 +1306,7 @@
     /* style */
     var __vue_inject_styles__$4 = function (inject) {
       if (!inject) { return }
-      inject("data-v-0da59768_0", { source: ".vtd-date{position:relative}.vts-date__navigation{display:flex;justify-content:space-around}", map: undefined, media: undefined });
+      inject("data-v-5e579ca9_0", { source: ".vtd-date{position:relative}.vts-date__navigation{display:flex;justify-content:space-around}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -1445,6 +1456,7 @@
         window.addEventListener('keydown', onKeydown);
         noScroll && document.body.style.setProperty('overflow', 'hidden');
         this.$nextTick(function () { return this$1.$refs.content.focus(); });
+        this.$emit('open');
       },
       onClose: function onClose() {
         var ref = this;
@@ -1454,6 +1466,7 @@
         window.removeEventListener('click', onClick);
         window.removeEventListener('keydown', onKeydown);
         noScroll && document.body.style.removeProperty('overflow');
+        this.$emit('close');
       },
       onClick: function onClick(event) {
         if (event.target.classList.contains('vts-dialog') && this.dismissible) {
@@ -1545,6 +1558,7 @@
             attrs: {
               tabindex: '-1',
               role: 'dialog',
+              'aria-modal': 'true'
             },
           },
           [this.$slots.default]
@@ -1591,7 +1605,7 @@
     /* style */
     var __vue_inject_styles__$5 = function (inject) {
       if (!inject) { return }
-      inject("data-v-0c766f68_0", { source: ".vts-dialog{display:flex;align-items:center;justify-content:center;position:fixed;z-index:100;top:0;right:0;bottom:0;left:0}.vts-dialog__content:focus{outline:0}", map: undefined, media: undefined });
+      inject("data-v-c3e7165a_0", { source: ".vts-dialog{display:flex;align-items:center;justify-content:center;position:fixed;z-index:100;top:0;right:0;bottom:0;left:0}.vts-dialog__content:focus{outline:0}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -1734,6 +1748,7 @@
         window.addEventListener('keydown', onKeydown);
         noScroll && document.body.style.setProperty('overflow', 'hidden');
         this.$nextTick(function () { return this$1.$refs.content.focus(); });
+        this.$emit('open');
       },
       onClose: function onClose() {
         var ref = this;
@@ -1743,6 +1758,7 @@
         window.removeEventListener('click', onClick);
         window.removeEventListener('keydown', onKeydown);
         noScroll && document.body.style.removeProperty('overflow');
+        this.$emit('close');
       },
       onClick: function onClick(event) {
         if (event.target.classList.contains(NAME$1)) {
@@ -1886,7 +1902,7 @@
     /* style */
     var __vue_inject_styles__$6 = function (inject) {
       if (!inject) { return }
-      inject("data-v-54968096_0", { source: ".vts-drawer{position:fixed;z-index:100;top:0;right:0;bottom:0;left:0}.vts-drawer__content{overflow:auto;max-width:300px;height:100%}.vts-drawer__content:focus{outline:0}.vts-drawer__content--right{margin-left:auto}", map: undefined, media: undefined });
+      inject("data-v-62ccd034_0", { source: ".vts-drawer{position:fixed;z-index:100;top:0;right:0;bottom:0;left:0}.vts-drawer__content{overflow:auto;max-width:300px;height:100%}.vts-drawer__content:focus{outline:0}.vts-drawer__content--right{margin-left:auto}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -2134,13 +2150,13 @@
         'vts-file--droppable': _vm.droppable,
         'vts-file--selected': !!_vm.localFiles.length,
       },
-      _vm.classes.label ],attrs:{"for":_vm.id}},[_c('input',_vm._g(_vm._b({ref:"input",class:['vts-file__input', _vm.classes.input],attrs:{"id":_vm.id,"type":"file"},on:{"change":_vm.onChange}},'input',_vm.$attrs,false),_vm.$listeners)),_vm._v(" "),_c('span',{class:['vts-file__text', _vm.classes.text]},[_vm._t("label",[_vm._v(_vm._s(_vm.label))])],2),_vm._v(" "),_c('div',{staticClass:"vts-file__dropzone",on:{"dragenter":function($event){$event.preventDefault();_vm.droppable = true;}}},[_vm._t("default",[(_vm.localFiles.length)?_c('span',{attrs:{"aria-hidden":"true"}},[(_vm.localFiles.length > 1)?[_vm._v("\n          "+_vm._s(_vm.localFiles.length)+" files selected\n        ")]:[_vm._v("\n          "+_vm._s(_vm.localFiles[0].name)+"\n        ")]],2):_c('span',{attrs:{"aria-hidden":"true"}},[_vm._v("\n        Choose files or drop here\n      ")])],null,{ files: _vm.localFiles, droppable: _vm.droppable }),_vm._v(" "),(_vm.droppable)?_c('span',{staticClass:"vts-file__overlay",on:{"drop":function($event){$event.preventDefault();return _vm.onDrop($event)},"dragenter":function($event){$event.stopPropagation();_vm.droppable = true;},"dragleave":function($event){$event.stopPropagation();_vm.droppable = false;},"dragover":function($event){$event.preventDefault();}}},[_vm._t("overlay")],2):_vm._e()],2)])};
+      _vm.classes.label ],attrs:{"for":_vm.id}},[_c('input',_vm._g(_vm._b({ref:"input",class:['vts-visually-hidden', _vm.classes.input],attrs:{"id":_vm.id,"type":"file"},on:{"change":_vm.onChange}},'input',_vm.$attrs,false),_vm.$listeners)),_vm._v(" "),_c('span',{class:['vts-file__text', _vm.classes.text]},[_vm._t("label",[_vm._v(_vm._s(_vm.label))])],2),_vm._v(" "),_c('div',{staticClass:"vts-file__dropzone",on:{"dragenter":function($event){$event.preventDefault();_vm.droppable = true;}}},[_vm._t("default",[(_vm.localFiles.length)?_c('span',{attrs:{"aria-hidden":"true"}},[(_vm.localFiles.length > 1)?[_vm._v("\n          "+_vm._s(_vm.localFiles.length)+" files selected\n        ")]:[_vm._v("\n          "+_vm._s(_vm.localFiles[0].name)+"\n        ")]],2):_c('span',{attrs:{"aria-hidden":"true"}},[_vm._v("\n        Choose files or drop here\n      ")])],null,{ files: _vm.localFiles, droppable: _vm.droppable }),_vm._v(" "),(_vm.droppable)?_c('span',{staticClass:"vts-file__overlay",on:{"drop":function($event){$event.preventDefault();return _vm.onDrop($event)},"dragenter":function($event){$event.stopPropagation();_vm.droppable = true;},"dragleave":function($event){$event.stopPropagation();_vm.droppable = false;},"dragover":function($event){$event.preventDefault();}}},[_vm._t("overlay")],2):_vm._e()],2)])};
   var __vue_staticRenderFns__$3 = [];
 
     /* style */
     var __vue_inject_styles__$8 = function (inject) {
       if (!inject) { return }
-      inject("data-v-b9d8e72c_0", { source: ".vts-file__input{position:absolute;overflow:hidden;clip:rect(0 0 0 0);width:1px;height:1px;margin:-1px;border:0;padding:0}.vts-file__dropzone{position:relative}.vts-file__overlay{position:absolute;top:0;right:0;bottom:0;left:0}input:focus~.vts-file__dropzone{outline-width:1px;outline-style:auto;outline-color:Highlight;outline-color:-webkit-focus-ring-color}", map: undefined, media: undefined });
+      inject("data-v-e3c1b43c_0", { source: ".vts-visually-hidden{position:absolute;overflow:hidden;clip:rect(0 0 0 0);width:1px;height:1px;margin:-1px;border:0;padding:0}.vts-file__dropzone{position:relative}.vts-file__overlay{position:absolute;top:0;right:0;bottom:0;left:0}input:focus~.vts-file__dropzone{outline-width:1px;outline-style:auto;outline-color:Highlight;outline-color:-webkit-focus-ring-color}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -2169,11 +2185,47 @@
     );
 
   //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
 
   var script$9 = {
     name: 'VForm',
     props: {
       lazy: Boolean,
+      errors: {
+        type: Object,
+        default: function () { return ({}); }
+      },
+      honeypot: {
+        type: [Boolean, String],
+        default: false,
+      }
     },
 
     data: function () { return ({
@@ -2182,86 +2234,98 @@
     }); },
 
     computed: {
+      /** @return {string} */
       event: function event() {
         return this.lazy ? 'change' : 'input';
       },
-
+      /** @return {boolean} */
       valid: function valid() {
         return !Object.values(this.localInputs).find(function (input) { return !input.valid; });
       },
-
+      /** @return {boolean} */
       error: function error() {
         return !this.valid && this.dirty;
       },
-
+      /** @return {object} */
       inputs: function inputs() {
         var inputs = {};
         var ref = this;
         var localInputs = ref.localInputs;
+        var errors = ref.errors;
 
-        for (var key in localInputs) {
-          var input = localInputs[key];
-          inputs[key] = Object.assign({}, input,
-            {error: input.dirty && !input.valid});
-        }
+        var loop = function ( key ) {
+          var input = Object.assign({}, localInputs[key],
+            {error: localInputs[key].dirty && !localInputs[key].valid,
+            errors: []});
+
+          var errorsMap = new Map(Object.entries(errors || {}));
+
+          errorsMap.forEach(function (value, key) {
+            if (!input.invalid[key]) { return; }
+
+            var errorHandler = errorsMap.get(key);
+            // console.log(errorHandler);
+            var attrName = key.replace('length', 'Length'); // for minLength and maxLength
+
+            var errorMessage =
+              typeof errorHandler === 'string'
+                ? errorHandler
+                : errorHandler(input._inputEl[attrName]);
+
+            input.errors.push(errorMessage);
+          });
+
+          inputs[key] = input;
+        };
+
+        for (var key in localInputs) loop( key );
+
         return inputs;
       },
     },
 
     mounted: function mounted() {
-      var this$1 = this;
-
-      var els = Array.from(this.$el.querySelectorAll('input, textarea, select'));
-
-      var localInputs = {};
-
-      els.forEach(function (input) {
-        var name = input.name || randomString(6);
-        var validity = input.validity;
-
-        localInputs[name] = {
-          value: input.value,
-          valid: input.validity.valid,
-          dirty: false,
-          invalid: {
-            type: validity.typeMismatch,
-            required: validity.valueMissing,
-            minlength: validity.tooShort,
-            maxlength: validity.tooLong,
-            min: validity.rangeOverflow,
-            max: validity.rangeUnderflow,
-            pattern: validity.patternMismatch,
-          },
-        };
-
-        input.addEventListener('blur', this$1.onBlur, { once: true });
-        this$1.$once('hook:beforeDestroy', function () {
-          input.removeEventListener('blur', this$1.onBlur);
-        });
+      this.validate();
+      var observer = new MutationObserver(this.validate);
+      observer.observe(this.$el, {
+        childList: true,
+        subtree: true 
       });
-      this.localInputs = localInputs;
+      this.$once('hook:beforeDestroy', function () {
+        observer.disconnect();
+      });
     },
 
     methods: {
-      onEvent: function onEvent(ref) {
-        var target = ref.target;
+      validate: function validate() {
+        /** @type {NodeListOf<HTMLInputElement>} */
+        var els = this.$el.querySelectorAll('input, textarea, select');
 
-        var ref$1 = this;
-        var localInputs = ref$1.localInputs;
-        var validity = target.validity;
+        var localInputs = {};
 
-        localInputs[target.name] = Object.assign({}, localInputs[target.name],
-          {value: target.value,
-          valid: target.validity.valid,
-          invalid: {
-            type: validity.typeMismatch,
-            required: validity.valueMissing,
-            minlength: validity.tooShort,
-            maxlength: validity.tooLong,
-            min: validity.rangeOverflow,
-            max: validity.rangeUnderflow,
-            pattern: validity.patternMismatch,
-          }});
+        els.forEach(function (input) {
+          var name = input.name;
+          var id = input.id;
+          var validity = input.validity;
+          if (!name && !id) { return; }
+
+          localInputs[name || id] = {
+            _inputEl: input,
+            value: input.value,
+            valid: validity.valid,
+            dirty: false,
+            invalid: {
+              type: validity.typeMismatch,
+              required: validity.valueMissing,
+              minlength: validity.tooShort,
+              maxlength: validity.tooLong,
+              min: validity.rangeOverflow,
+              max: validity.rangeUnderflow,
+              pattern: validity.patternMismatch,
+            },
+          };
+
+        });
         this.localInputs = localInputs;
       },
       onBlur: function onBlur(ref) {
@@ -2272,13 +2336,26 @@
       },
 
       clear: function clear() {
+        /** @type {HTMLInputElement[]} */
         var els = Array.from(
           this.$el.querySelectorAll('input, textarea, select')
         );
         els.forEach(function (input) {
-          input.value = '';
+          if(['radio', 'checkbox'].includes(input.type)) {
+            input.checked = false;
+          } else {
+            input.value = '';
+          }
         });
       },
+
+      onSubmit: function onSubmit(event) {
+        if(!event.target.checkValidity()) {
+          this.$emit('invalid', event);
+          return;
+        }
+        this.$emit('valid', event);
+      }
     },
   };
 
@@ -2286,25 +2363,27 @@
   var __vue_script__$9 = script$9;
 
   /* template */
-  var __vue_render__$4 = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('form',_vm._g(_vm._b({class:[
+  var __vue_render__$4 = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('form',_vm._g({class:[
       'vts-form',
       {
         'vts-form--invalid': !_vm.valid,
         'vts-form--dirty': _vm.dirty,
         'vts-form--error': _vm.error,
-      } ],attrs:{"method":_vm.$attrs.method || 'POST'},on:_vm._d({},[_vm.event,_vm.onEvent])},'form',_vm.$attrs,false),_vm.$listeners),[_vm._t("default",null,null,{ valid: _vm.valid, dirty: _vm.dirty, error: _vm.error, inputs: _vm.inputs, clear: _vm.clear })],2)};
+      } ],attrs:{"method":_vm.$attrs.method || 'POST'},on:_vm._d({"submit":_vm.onSubmit,"~!blur":function($event){_vm.dirty = true;}},[_vm.event,_vm.validate])},_vm.$listeners),[(_vm.honeypot)?_c('input',{staticClass:"visually-hidden",attrs:{"name":typeof _vm.honeypot === 'string' ? _vm.honeypot : 'vts-honeypot',"tabindex":"-1","autocomplete":"off","aria-hidden":"true"}}):_vm._e(),_vm._v(" "),_vm._t("default",null,null,{ valid: _vm.valid, dirty: _vm.dirty, error: _vm.error, inputs: _vm.inputs, clear: _vm.clear, validate: _vm.validate })],2)};
   var __vue_staticRenderFns__$4 = [];
 
     /* style */
-    var __vue_inject_styles__$9 = undefined;
+    var __vue_inject_styles__$9 = function (inject) {
+      if (!inject) { return }
+      inject("data-v-1955d20b_0", { source: ".vts-visually-hidden{position:absolute;overflow:hidden;clip:rect(0 0 0 0);width:1px;height:1px;margin:-1px;border:0;padding:0}", map: undefined, media: undefined });
+
+    };
     /* scoped */
     var __vue_scope_id__$9 = undefined;
     /* module identifier */
     var __vue_module_identifier__$9 = undefined;
     /* functional template */
     var __vue_is_functional_template__$9 = false;
-    /* style inject */
-    
     /* style inject SSR */
     
     /* style inject shadow dom */
@@ -2319,7 +2398,7 @@
       __vue_is_functional_template__$9,
       __vue_module_identifier__$9,
       false,
-      undefined,
+      createInjector,
       undefined,
       undefined
     );
@@ -2543,6 +2622,12 @@
   //
 
   /**
+   * TODO:
+   * Provide prop for error,invalid classes on input
+   * Remove span from labels (breaking)
+   */
+
+  /**
    * Input component that automatically includes labels, validation, and aria descriptions for any errors.
    */
   var script$b = {
@@ -2563,6 +2648,14 @@
       },
 
       /**
+       * Every input should have a label with the exception of `radio` which supports labels for the `options` prop.
+       */
+      name: {
+        type: String,
+        required: true,
+      },
+
+      /**
        * The input value. Works for all inputs except type `radio`. See `options` prop.
        */
       value: {
@@ -2576,6 +2669,11 @@
       options: {
         type: Array,
         default: function () { return []; },
+      },
+
+      errors: {
+        type: Object,
+        default: function () { return ({}); },
       },
 
       classes: {
@@ -2598,6 +2696,7 @@
       bind: function bind() {
         var ref = this;
         var id = ref.id;
+        var name = ref.name;
         var valid = ref.valid;
         var error = ref.error;
         var classes = ref.classes;
@@ -2606,6 +2705,7 @@
           'aria-describedby': error && (id + "__description")},
           $attrs,
           {id: (id + "__input"),
+          name: name,
           class: ['vts-input__input', classes.input]});
 
         return attrs;
@@ -2621,7 +2721,7 @@
           item = typeof item === 'object' ? item : { value: item };
           return Object.assign(item, $attrs, {
             label: item.label || item.value,
-            name: item.name || id,
+            name: $attrs.name || id,
             value: item.value,
             checked:
               localValue !== undefined ? item.value === localValue : item.checked,
@@ -2638,6 +2738,32 @@
       error: function error() {
         return !this.valid && this.dirty;
       },
+
+      errorMessages: function errorMessages() {
+        var ref = this;
+        var invalid = ref.invalid;
+        var errors = ref.errors;
+        var $attrs = ref.$attrs;
+        var errorMessages = [];
+
+        var errorsMap = new Map(Object.entries(errors || {}));
+
+        errorsMap.forEach(function (value, key) {
+          if (!invalid[key]) { return; }
+
+          var errorHandler = errors.get(key);
+          var attrName = key.replace('length', 'Length'); // for minLength and maxLength
+
+          var errorMessage =
+            typeof errorHandler === 'string'
+              ? errorHandler
+              : errorHandler($attrs[attrName]);
+
+          errorMessages.push(errorMessage);
+        });
+
+        return errorMessages;
+      }
     },
 
     watch: {
@@ -2656,11 +2782,7 @@
     },
 
     created: function created() {
-      var ref = this.$attrs;
-      var id = ref.id;
-      var name = ref.name;
-      this.id = id || 'vts-' + randomString(4);
-      this.name = name || this.id;
+      this.id = this.$attrs.id || 'vts-' + randomString(4);
     },
 
     mounted: function mounted() {
@@ -2672,6 +2794,7 @@
         var input = this.$refs.input;
 
         if (Array.isArray(input)) {
+          if (!input.length) { return; }
           input = input[0];
         }
 
@@ -2707,7 +2830,7 @@
         'vts-input--dirty': _vm.dirty,
         'vts-input--error': _vm.error,
       },
-      _vm.classes.root ]},[('radio' === _vm.$attrs.type)?_c('fieldset',{class:['vts-input__fieldset', _vm.classes.fieldset]},[(_vm.label)?_c('legend',{class:['vts-input__legend', _vm.classes.text]},[_vm._v("\n      "+_vm._s(_vm.label)+"\n    ")]):_vm._e(),_vm._v(" "),_vm._l((_vm.computedOptions),function(option,index){return _c('label',{key:option.value,class:['vts-input__label', _vm.classes.label],attrs:{"for":(_vm.id + "__input-" + index)}},[_c('input',_vm._g(_vm._b({ref:"input",refInFor:true,attrs:{"id":(_vm.id + "__input-" + index)},on:{"input":function($event){_vm.localValue = option.value;},"~blur":function($event){_vm.dirty = true;}}},'input',Object.assign({}, _vm.bind, option),false),_vm.$listeners)),_vm._v(" "),_c('span',{class:['vts-input__text', _vm.classes.text]},[_vm._v("\n        "+_vm._s(option.label)+"\n      ")])])})],2):('checkbox' === _vm.$attrs.type)?_c('label',{class:['vts-input__label', _vm.classes.label],attrs:{"for":(_vm.id + "__input")}},[_c('input',_vm._g(_vm._b({ref:"input",domProps:{"checked":_vm.localValue === undefined ? _vm.$attrs.checked : _vm.localValue},on:{"change":function($event){_vm.localValue = $event.target.checked;},"~blur":function($event){_vm.dirty = true;}}},'input',_vm.bind,false),_vm.$listeners)),_vm._v(" "),_c('span',{class:['vts-input__text', _vm.classes.text]},[_vm._v("\n      "+_vm._s(_vm.label)+"\n    ")])]):_c('label',{class:['vts-input__label', _vm.classes.label],attrs:{"for":(_vm.id + "__input")}},[_c('span',{class:['vts-input__text', _vm.classes.text]},[_vm._v("\n      "+_vm._s(_vm.label)+"\n    ")]),_vm._v(" "),('select' === _vm.$attrs.type)?_c('select',_vm._g(_vm._b({ref:"input",domProps:{"value":_vm.localValue},on:{"input":function($event){_vm.localValue = $event.target.value;},"~blur":function($event){_vm.dirty = true;}}},'select',_vm.bind,false),_vm.$listeners),_vm._l((_vm.computedOptions),function(option,i){return _c('option',_vm._b({key:i},'option',option,false),[_vm._v("\n        "+_vm._s(option.label)+"\n      ")])}),0):('textarea' === _vm.$attrs.type)?_c('textarea',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",domProps:{"value":(_vm.localValue)},on:{"~blur":function($event){_vm.dirty = true;},"input":function($event){if($event.target.composing){ return; }_vm.localValue=$event.target.value;}}},'textarea',_vm.bind,false),_vm.$listeners)):(((_vm.bind).type)==='checkbox')?_c('input',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",attrs:{"type":"checkbox"},domProps:{"checked":Array.isArray(_vm.localValue)?_vm._i(_vm.localValue,null)>-1:(_vm.localValue)},on:{"~blur":function($event){_vm.dirty = true;},"change":function($event){var $$a=_vm.localValue,$$el=$event.target,$$c=$$el.checked?(true):(false);if(Array.isArray($$a)){var $$v=null,$$i=_vm._i($$a,$$v);if($$el.checked){$$i<0&&(_vm.localValue=$$a.concat([$$v]));}else {$$i>-1&&(_vm.localValue=$$a.slice(0,$$i).concat($$a.slice($$i+1)));}}else {_vm.localValue=$$c;}}}},'input',_vm.bind,false),_vm.$listeners)):(((_vm.bind).type)==='radio')?_c('input',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",attrs:{"type":"radio"},domProps:{"checked":_vm._q(_vm.localValue,null)},on:{"~blur":function($event){_vm.dirty = true;},"change":function($event){_vm.localValue=null;}}},'input',_vm.bind,false),_vm.$listeners)):_c('input',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",attrs:{"type":(_vm.bind).type},domProps:{"value":(_vm.localValue)},on:{"~blur":function($event){_vm.dirty = true;},"input":function($event){if($event.target.composing){ return; }_vm.localValue=$event.target.value;}}},'input',_vm.bind,false),_vm.$listeners))]),_vm._v(" "),(_vm.$scopedSlots.description)?_c('div',{class:['vts-input__description', _vm.classes.description],attrs:{"id":(_vm.id + "__description"),"role":"alert"}},[_vm._t("description",null,null,{ valid: _vm.valid, dirty: _vm.dirty, error: _vm.error, invalid: _vm.invalid, anyInvalid: _vm.anyInvalid })],2):_vm._e()])};
+      _vm.classes.root ]},[('radio' === _vm.$attrs.type)?_c('fieldset',{class:['vts-input__fieldset', _vm.classes.fieldset]},[(_vm.label)?_c('legend',{class:['vts-input__legend', _vm.classes.text]},[_vm._v("\n      "+_vm._s(_vm.label)+"\n    ")]):_vm._e(),_vm._v(" "),_vm._l((_vm.computedOptions),function(option,index){return _c('label',{key:option.value,class:['vts-input__label', _vm.classes.label],attrs:{"for":(_vm.id + "__input-" + index)}},[_c('input',_vm._g(_vm._b({ref:"input",refInFor:true,attrs:{"id":(_vm.id + "__input-" + index)},on:{"input":function($event){_vm.localValue = option.value;},"~blur":function($event){_vm.dirty = true;}}},'input',Object.assign({}, _vm.bind, option),false),_vm.$listeners)),_vm._v(" "),_c('span',{class:['vts-input__text', _vm.classes.text]},[_vm._v("\n        "+_vm._s(option.label)+"\n      ")])])})],2):('checkbox' === _vm.$attrs.type)?_c('label',{class:['vts-input__label', _vm.classes.label],attrs:{"for":(_vm.id + "__input")}},[_c('input',_vm._g(_vm._b({ref:"input",domProps:{"checked":_vm.localValue === undefined ? _vm.$attrs.checked : _vm.localValue},on:{"change":function($event){_vm.localValue = $event.target.checked;},"~blur":function($event){_vm.dirty = true;}}},'input',_vm.bind,false),_vm.$listeners)),_vm._v(" "),_c('span',{class:['vts-input__text', _vm.classes.text]},[_vm._v("\n      "+_vm._s(_vm.label)+"\n    ")])]):_c('label',{class:['vts-input__label', _vm.classes.label],attrs:{"for":(_vm.id + "__input")}},[_c('span',{class:['vts-input__text', _vm.classes.text]},[_vm._v("\n      "+_vm._s(_vm.label)+"\n    ")]),_vm._v(" "),('select' === _vm.$attrs.type)?_c('select',_vm._g(_vm._b({ref:"input",domProps:{"value":_vm.localValue},on:{"input":function($event){_vm.localValue = $event.target.value;},"change":function($event){_vm.localValue = $event.target.value;},"~blur":function($event){_vm.dirty = true;}}},'select',_vm.bind,false),_vm.$listeners),[_vm._t("options",_vm._l((_vm.computedOptions),function(option,i){return _c('option',_vm._b({key:i},'option',option,false),[_vm._v("\n          "+_vm._s(option.label)+"\n        ")])}))],2):('textarea' === _vm.$attrs.type)?_c('textarea',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",domProps:{"value":(_vm.localValue)},on:{"~blur":function($event){_vm.dirty = true;},"input":function($event){if($event.target.composing){ return; }_vm.localValue=$event.target.value;}}},'textarea',_vm.bind,false),_vm.$listeners)):(((_vm.bind).type)==='checkbox')?_c('input',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",attrs:{"type":"checkbox"},domProps:{"checked":Array.isArray(_vm.localValue)?_vm._i(_vm.localValue,null)>-1:(_vm.localValue)},on:{"~blur":function($event){_vm.dirty = true;},"change":function($event){var $$a=_vm.localValue,$$el=$event.target,$$c=$$el.checked?(true):(false);if(Array.isArray($$a)){var $$v=null,$$i=_vm._i($$a,$$v);if($$el.checked){$$i<0&&(_vm.localValue=$$a.concat([$$v]));}else {$$i>-1&&(_vm.localValue=$$a.slice(0,$$i).concat($$a.slice($$i+1)));}}else {_vm.localValue=$$c;}}}},'input',_vm.bind,false),_vm.$listeners)):(((_vm.bind).type)==='radio')?_c('input',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",attrs:{"type":"radio"},domProps:{"checked":_vm._q(_vm.localValue,null)},on:{"~blur":function($event){_vm.dirty = true;},"change":function($event){_vm.localValue=null;}}},'input',_vm.bind,false),_vm.$listeners)):_c('input',_vm._g(_vm._b({directives:[{name:"model",rawName:"v-model",value:(_vm.localValue),expression:"localValue"}],ref:"input",attrs:{"type":(_vm.bind).type},domProps:{"value":(_vm.localValue)},on:{"~blur":function($event){_vm.dirty = true;},"input":function($event){if($event.target.composing){ return; }_vm.localValue=$event.target.value;}}},'input',_vm.bind,false),_vm.$listeners))]),_vm._v(" "),(_vm.$scopedSlots.description)?_c('div',{class:['vts-input__description', _vm.classes.description],attrs:{"id":(_vm.id + "__description"),"role":"alert"}},[_vm._t("description",null,null,{ valid: _vm.valid, dirty: _vm.dirty, error: _vm.error, invalid: _vm.invalid, anyInvalid: _vm.anyInvalid, errors: _vm.errorMessages })],2):_vm._e()])};
   var __vue_staticRenderFns__$6 = [];
 
     /* style */
@@ -2832,7 +2955,7 @@
       },
     },
 
-    render: function render(h) {
+    render: function render() {
       /** @slot Content to be tracked with IntersectionObserver */
       var ref = this;
       var entry = ref.entry;
@@ -2842,10 +2965,10 @@
       var scopedSlot = this.$scopedSlots.default;
 
       if (defaultSlot) {
-        return safeSlot(h, defaultSlot);
+        return defaultSlot;
       }
 
-      return safeSlot(h, scopedSlot(entry));
+      return scopedSlot(entry);
     },
   };
 
@@ -2889,6 +3012,8 @@
    * A modal/dialogue component for showing users content which overlays the rest of the applications. When opened, it traps the user's focus so that keyboard navigation will remain within the modal until it is closed. It supports being closed by clicking outside the modal content or pressing the ESC key.
    */
   var script$d = {
+    name: 'VModal',
+    
     model: {
       prop: 'showing',
       event: 'change',
@@ -3064,7 +3189,7 @@
     /* style */
     var __vue_inject_styles__$d = function (inject) {
       if (!inject) { return }
-      inject("data-v-561abecc_0", { source: ".vts-modal{display:flex;align-items:center;justify-content:center;position:fixed;z-index:100;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.2)}.vts-modal [tabindex=\"-1\"]:focus{outline:0}.vts-modal__content{overflow:auto;max-width:70vw;max-height:80vh;background:#fff}", map: undefined, media: undefined });
+      inject("data-v-e968daac_0", { source: ".vts-modal{display:flex;align-items:center;justify-content:center;position:fixed;z-index:100;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.2)}.vts-modal [tabindex=\"-1\"]:focus{outline:0}.vts-modal__content{overflow:auto;max-width:70vw;max-height:80vh;background:#fff}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -3257,310 +3382,251 @@
     );
 
   //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
+
+  /**
+   * @typedef {{ key: string, text: string, sortable: boolean, sort: (a, b, isAscending: boolean) => number }} Header
+   * @typedef {Header & { bind: object, sortBtn: object }} ComputedHeader
+   */
 
   var script$g = {
     name: 'VTable',
+    provide: function provide() {
+      return {
+        $table: this,
+      };
+    },
     props: {
+      /** @type {import('vue').PropOptions<Header[]>} */
       headers: {
         type: Array,
         default: function () { return []; },
       },
+      /** @type {import('vue').PropOptions<Object[]>} */
       items: {
         type: Array,
         default: function () { return []; },
       },
       page: {
-        type: Number,
+        type: [Number, String],
         default: 1,
       },
       perPage: {
-        type: Number,
-        default: 100,
+        type: [Number, String],
+        default: -1,
       },
-      orderBy: {
+      sortBy: {
         type: String,
-        default: null,
+        default: '',
       },
-      order: {
+      /** @type {import('vue').PropOptions<'ASC'|'DESC'>} */
+      // @ts-ignore
+      sortDirection: {
         type: String,
-        default: null,
+        default: '',
+        validator: function (direction) {
+          return new Set(['ASC', 'DESC', '']).has(direction.toUpperCase());
+        },
+      },
+      id: {
+        type: String,
+        default: 'vts-' + randomString(4),
       },
       caption: {
         type: String,
         default: '',
       },
-      // TODO: sortable prop
+      sortable: Boolean,
+      classes: {
+        type: Object,
+        default: function () { return ({}); },
+      },
     },
 
     data: function data() {
       return {
-        sortBy: this.orderBy,
-        sortOrder: this.order && this.order.toUpperCase(),
-        currentPage: this.page,
-        tabindex: null,
+        localSortBy: this.sortBy,
+        localSortDirection: this.sortDirection ? this.sortDirection.toUpperCase() : '',
+        localPage: Number(this.page),
+        localPerPage: Number(this.perPage),
+        // tabindex: null,
       };
     },
 
     computed: {
-      cHeaders: function cHeaders() {
-        return this.headers.reduce(function (headers, item) {
-          /* eslint-disable-next-line no-param-reassign */
-          headers[item.key] = Object.assign({}, {sortable: true},
-            item);
-          return headers;
-        }, {});
-      },
+      /** @return {ComputedHeader[]} */
+      computedHeaders: function computedHeaders() {
+        var this$1 = this;
 
-      cItems: function cItems() {
         var ref = this;
-        var items = ref.items;
-        var sortBy = ref.sortBy;
-        var sortOrder = ref.sortOrder;
-        var currentPage = ref.currentPage;
-        var perPage = ref.perPage;
-        var cHeaders = ref.cHeaders;
+        var headers = ref.headers;
+        var sortable = ref.sortable;
+        var localSortBy = ref.localSortBy;
+        var localSortDirection = ref.localSortDirection;
+        var computedHeaders = [];
 
-        var cItems = items.map(function (original) {
-          var data = {};
-          Object.keys(cHeaders).forEach(function (key) {
-            data[key] = original[key];
-          });
-          return {
-            original: original,
-            data: data,
-          };
-        });
+        headers.forEach(function (header) {
+          /** @type {ComputedHeader} */
+          var computedHeader = Object.assign({}, header,
+            {bind: {},
+            sortBtn: {
+              bind: { 'aria-label': "toggle sort direction" },
+              on: { click: function () { return this$1.onSort(header.key); } },
+            }});
 
-        if (sortBy && sortOrder) {
-          var multiplier = sortOrder === 'ASC' ? 1 : -1;
-          var isNum = Number.isFinite(cItems[0].data[sortBy]);
+          if (computedHeader.sortable === undefined) {
+            computedHeader.sortable = !!computedHeader.sort || sortable;
+          }
 
-          cItems = cItems.sort(function (a, b) {
-            var aVal = a.data[sortBy];
-            var bVal = b.data[sortBy];
-
-            if (isNum) {
-              return (aVal - bVal) * multiplier;
+          if (computedHeader.sortable) {
+            if (localSortBy === header.key && localSortDirection) {
+              if (localSortDirection === 'ASC') {
+                computedHeader.bind['aria-sort'] = 'ascending';
+              } else {
+                computedHeader.bind['aria-sort'] = 'descending';
+              }
             }
+          }
 
-            if (aVal < bVal) { return -1 * multiplier; }
-            if (aVal > bVal) { return 1 * multiplier; }
-            return 0;
+          computedHeaders.push(computedHeader);
+        });
+        return computedHeaders;
+      },
+
+      /** @return {Array} */
+      computedItems: function computedItems() {
+        var ref = this;
+        var computedHeaders = ref.computedHeaders;
+        var items = ref.items;
+        var localSortBy = ref.localSortBy;
+        var localSortDirection = ref.localSortDirection;
+        var localPage = ref.localPage;
+        var localPerPage = ref.localPerPage;
+
+        var computedItems = [].concat( items );
+
+        if (localSortBy && localSortDirection) {
+          var targetColumn = computedHeaders.find(function (header) {
+            return header.key === localSortBy;
+          });
+
+          var compareFn = this.defaultComparisonFn;
+          if (typeof targetColumn.sort === 'function') {
+            compareFn = targetColumn.sort;
+          }
+
+          computedItems = computedItems.sort(function (a, b) {
+            return compareFn(a, b, localSortDirection === 'ASC');
           });
         }
 
-        if (perPage > -1) {
-          var offset = (Math.max(currentPage, 1) - 1) * perPage;
-          cItems = cItems.slice(offset, offset + perPage);
+        if (localPerPage > -1) {
+          var offset = (Math.max(localPage, 1) - 1) * localPerPage;
+          computedItems = computedItems.slice(offset, offset + localPerPage);
         }
 
-        return cItems;
+        return computedItems;
       },
 
+      /** @return {number} */
       lastPage: function lastPage() {
-        return Math.ceil(this.items.length / this.perPage);
+        return Math.ceil(this.items.length / +this.perPage);
       },
     },
 
-    mounted: function mounted() {
-      var ref = this.$refs.container;
-      var scrollWidth = ref.scrollWidth;
-      var clientWidth = ref.clientWidth;
-      var scrollable = scrollWidth > clientWidth;
-      this.tabindex = scrollable ? '0' : null;
+    watch: {
+      /** @param {string} value */
+      sortBy: function sortBy(value) {
+        this.localSortBy = value;
+      },
+      localSortBy: function localSortBy(value) {
+        this.$emit('update:sort-by', value);
+      },
+      /** @param {string} value */
+      sortDirection: function sortDirection(value) {
+        this.localSortDirection = value && value.toUpperCase() || '';
+      },
+      localSortDirection: function localSortDirection(value) {
+        this.$emit('update:sort-direction', value);
+      },
+      /** @param {string | number} value */
+      page: function page(value) {
+        this.localPage = Number(value);
+      },
+      localPage: function localPage(value) {
+        this.$emit('update:page', value);
+      },
+      /** @param {string | number} value */
+      perPage: function perPage(value) {
+        this.localPerPage = Number(value);
+      },
+      localPerPage: function localPerPage(value) {
+        this.$emit('update:per-page', value);
+      },
     },
+
+    // mounted() {
+    //   const { scrollWidth, clientWidth } = this.$refs.container;
+    //   const scrollable = scrollWidth > clientWidth;
+    //   this.tabindex = scrollable ? '0' : null;
+    // },
 
     methods: {
+      /**
+       * @param a
+       * @param b
+       * @param {boolean} isAscending
+       * @return {number}
+       */
+      defaultComparisonFn: function defaultComparisonFn(a, b, isAscending) {
+        var ref = this;
+        var localSortBy = ref.localSortBy;
+        var multiplier = isAscending ? 1 : -1;
+
+        var aVal = a[localSortBy];
+        var bVal = b[localSortBy];
+
+        var isNumeric = Number.isFinite(aVal) && Number.isFinite(bVal);
+
+        if (isNumeric) {
+          return (aVal - bVal) * multiplier;
+        }
+        if (aVal < bVal) { return -1 * multiplier; }
+        if (aVal > bVal) { return 1 * multiplier; }
+        return 0;
+      },
+
       onSort: function onSort(key) {
         var ref = this;
-        var sortBy = ref.sortBy;
-        var sortOrder = ref.sortOrder;
-        this.currentPage = 1;
+        var localSortBy = ref.localSortBy;
+        var localSortDirection = ref.localSortDirection;
+        this.localPage = 1;
 
-        if (key !== sortBy) {
-          this.sortBy = key;
-          this.sortOrder = 'ASC';
+        if (key !== localSortBy) {
+          this.localSortBy = key;
+          this.localSortDirection = 'ASC';
           return;
         }
 
-        switch (sortOrder) {
+        switch (localSortDirection) {
           case 'ASC':
-            this.sortOrder = 'DESC';
+            this.localSortDirection = 'DESC';
             break;
           case 'DESC':
-            this.sortOrder = null;
+            this.localSortDirection = '';
             break;
           default:
-            this.sortOrder = 'ASC';
+            this.localSortDirection = 'ASC';
         }
       },
 
+      /**
+       * @param page
+       * @return {void}
+       */
       goToPage: function goToPage(page) {
         var ref = this;
         var lastPage = ref.lastPage;
-        this.currentPage = Math.min(Math.max(1, page), lastPage);
-      },
-
-      emitRowClick: function emitRowClick(item) {
-        this.$emit('click:row', item.original); // eslint-disable-line vue/custom-event-name-casing
-      },
-
-      ariaSort: function ariaSort(header) {
-        var order = 'descending';
-
-        if (this.sortBy !== header.key) {
-          order = null;
-        } else if (this.sortOrder === 'ASC') {
-          order = 'ascending';
-        }
-
-        return order;
-      },
-      ariaLabel: function ariaLabel(header) {
-        var order = 'default';
-
-        if (!this.sortOrder) {
-          order = 'ascending';
-        } else if (this.sortOrder === 'ASC') {
-          order = 'descending';
-        }
-
-        return [
-          'sort by',
-          header.text || header.key,
-          'in',
-          order,
-          'order'
-        ].join(' ');
+        this.localPage = Math.min(Math.max(1, page), lastPage);
       },
     },
   };
@@ -3569,13 +3635,55 @@
   var __vue_script__$g = script$g;
 
   /* template */
-  var __vue_render__$a = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"container",staticClass:"vts-table",attrs:{"role":"group","aria-labelledby":"caption"}},[_c('table',{class:[_vm.classes.table]},[(_vm.caption)?_c('caption',{class:[_vm.classes.caption],attrs:{"id":"caption"}},[_vm._v("\n      "+_vm._s(_vm.caption)+"\n    ")]):_vm._e(),_vm._v(" "),(_vm.headers.length)?_c('thead',{class:[_vm.classes.thead]},[_c('tr',{class:[_vm.classes.tr]},_vm._l((_vm.cHeaders),function(header,key){return _c('th',{key:key,class:[_vm.classes.th],attrs:{"aria-sort":_vm.ariaSort(header)}},[_vm._v("\n          "+_vm._s(header.text || header.key)+"\n\n          "),(header.sortable)?_c('button',{class:[_vm.classes.sortBtn],attrs:{"aria-label":_vm.ariaLabel(header)},on:{"click":function($event){return _vm.onSort(header.key)}}},[(header.key === _vm.sortBy && _vm.sortOrder === 'ASC')?[_vm._v("\n              ↑\n            ")]:(header.key === _vm.sortBy && _vm.sortOrder === 'DESC')?[_vm._v("\n              ↓\n            ")]:[_vm._v("\n              ↕\n            ")]],2):_vm._e()])}),0)]):_vm._e(),_vm._v(" "),_c('tbody',{class:[_vm.classes.tbody]},[_vm._t("default",_vm._l((_vm.cItems),function(item,index){return _c('tr',{key:item.id,class:[_vm.classes.tr],attrs:{"tabindex":"0"},on:{"click":function($event){return _vm.emitRowClick(item)},"keyup":function($event){return _vm.emitRowClick(item)}}},[_vm._l((item.data),function(value,key){return _vm._t(_vm.items[index].id ? ("row." + (_vm.items[index].id)) : null,[_c('td',{key:key,class:[_vm.classes.td]},[_vm._t(("column." + key),[_vm._v("\n                "+_vm._s(value)+"\n              ")],null,{ cell: value, item: item, column: key, row: index + 1 })],2)],null,{ item: item, column: key, row: index + 1 })})],2)}),null,Object.assign({}, {items: _vm.cItems}, _vm.$data, {perPage: _vm.perPage}))],2)]),_vm._v(" "),_vm._t("pagination",[(_vm.lastPage > 1)?_c('div',{class:[_vm.classes.pagination]},[_c('button',{class:[_vm.classes.previous],attrs:{"disabled":_vm.currentPage === 1,"aria-label":"go to previous page"},on:{"click":function($event){return _vm.goToPage(_vm.currentPage - 1)}}},[_vm._v("\n        Prev\n      ")]),_vm._v(" "),_c('ul',{class:[_vm.classes.pageList]},_vm._l((_vm.lastPage),function(pageNum){return _c('li',{key:pageNum,class:[_vm.classes.pageItem]},[_c('button',{class:[_vm.classes.page],attrs:{"disabled":pageNum === _vm.currentPage,"aria-label":("go to page " + pageNum)},on:{"click":function($event){return _vm.goToPage(pageNum)}}},[_vm._v("\n            "+_vm._s(pageNum)+"\n          ")])])}),0),_vm._v(" "),_c('button',{class:[_vm.classes.next],attrs:{"disabled":_vm.currentPage === _vm.lastPage,"aria-label":"go to next page"},on:{"click":function($event){return _vm.goToPage(_vm.currentPage + 1)}}},[_vm._v("\n        Next\n      ")])]):_vm._e()],null,{ currentPage: _vm.currentPage, lastPage: _vm.lastPage, goToPage: _vm.goToPage })],2)};
+  var __vue_render__$a = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"container",class:['vts-table', { 'vts-table--sortable': _vm.sortable }, _vm.classes.root],attrs:{"role":"region","aria-labelledby":"caption"}},[_c('table',{class:[_vm.classes.table]},[_vm._t("default",[(_vm.caption)?_c('caption',{class:[_vm.classes.caption],attrs:{"id":(_vm.id + "__caption")}},[_vm._v("\n        "+_vm._s(_vm.caption)+"\n      ")]):_vm._e(),_vm._v(" "),(_vm.computedHeaders.length)?_c('thead',{class:[_vm.classes.thead]},[_c('tr',{class:[_vm.classes.tr]},_vm._l((_vm.computedHeaders),function(header,index){return _c('th',_vm._b({key:header.key,class:[_vm.classes.th]},'th',header.bind,false),[_vm._t(("header." + (header.key)),[_vm._v("\n              "+_vm._s(header.text || header.key)+"\n\n              "),(header.sortable)?[(
+                      header.key === _vm.localSortBy && _vm.localSortDirection === 'ASC'
+                    )?_vm._t("sort-asc",[_c('button',_vm._g(_vm._b({class:[
+                        'vts-table__sort-btn',
+                        'vts-table__sort-btn--asc',
+                        _vm.classes.sortBtn ]},'button',header.sortBtn.bind,false),header.sortBtn.on),[_vm._v("\n                    ↑\n                  ")])],null,header.sortBtn):(
+                      header.key === _vm.localSortBy && _vm.localSortDirection === 'DESC'
+                    )?_vm._t("sort-desc",[_c('button',_vm._g(_vm._b({class:[
+                        'vts-table__sort-btn',
+                        'vts-table__sort-btn--desc',
+                        _vm.classes.sortBtn ]},'button',header.sortBtn.bind,false),header.sortBtn.on),[_vm._v("\n                    ↓\n                  ")])],null,header.sortBtn):_vm._t("sort-none",[_c('button',_vm._g(_vm._b({class:['vts-table__sort-btn', _vm.classes.sortBtn]},'button',header.sortBtn.bind,false),header.sortBtn.on),[_vm._v("\n                    ↕\n                  ")])],null,header.sortBtn)]:_vm._e()],null,{
+                  header: header,
+                  index: index,
+                })],2)}),0)]):_vm._e(),_vm._v(" "),_c('tbody',{class:[_vm.classes.tbody]},[_vm._t("body",_vm._l((_vm.computedItems),function(item,index){return _c('tr',{key:item.id,class:['vts-table__row', _vm.classes.tr]},[_vm._t("row",_vm._l((_vm.computedHeaders),function(column){return _c('td',{key:column.key,class:[_vm.classes.td]},[_vm._t(("column." + (column.key)),[_vm._v("\n                  "+_vm._s(item[column.key])+"\n                ")],null,{
+                      item: item,
+                      index: (_vm.localPage - 1) * _vm.localPerPage + index,
+                      row: index + 1,
+                      key: column.key,
+                      column: column.key,
+                      value: item[column.key],
+                      cell: item[column.key],
+                      data: item[column.key],
+                    })],2)}),null,{ item: item, index: index, row: index + 1 })],2)}),null,{
+              items: _vm.computedItems,
+              sortBy: _vm.localSortBy,
+              sortDirection: _vm.localSortDirection,
+              page: _vm.localPage,
+              perPage: _vm.localPerPage,
+            })],2),_vm._v(" "),(_vm.$slots.tfoot)?_c('tfoot',{class:[_vm.classes.tfoot]},[_vm._t("tfoot")],2):_vm._e()],null,{
+          caption: _vm.caption,
+          headers: _vm.computedHeaders,
+          items: _vm.computedItems,
+          sortBy: _vm.localSortBy,
+          sortDirection: _vm.localSortDirection,
+          page: _vm.localPage,
+          perPage: _vm.localPerPage,
+        })],2),_vm._v(" "),_vm._t("pagination",[(_vm.lastPage > 1)?_c('div',{class:['vts-table__pagination', _vm.classes.pagination]},[_c('button',{class:['vts-table__prev', _vm.classes.previous],attrs:{"disabled":_vm.localPage === 1,"aria-label":"go to previous page"},on:{"click":function($event){return _vm.goToPage(_vm.localPage - 1)}}},[_vm._v("\n        Prev\n      ")]),_vm._v(" "),_c('ul',{class:['vts-table__pages', _vm.classes.pageList]},_vm._l((_vm.lastPage),function(pageNum){return _c('li',{key:pageNum,class:[
+              'vts-table__page-item',
+              { 'vts-table__page-item--current': pageNum === _vm.localPage },
+              _vm.classes.pageItem ]},[_c('button',{class:[
+                'vts-table__page',
+                { 'vts-table__page--current': pageNum === _vm.localPage },
+                _vm.classes.page ],attrs:{"disabled":pageNum === _vm.localPage,"aria-label":("go to page " + pageNum)},on:{"click":function($event){return _vm.goToPage(pageNum)}}},[_vm._v("\n            "+_vm._s(pageNum)+"\n          ")])])}),0),_vm._v(" "),_c('button',{class:['vts-table__next', _vm.classes.next],attrs:{"disabled":_vm.localPage === _vm.lastPage,"aria-label":"go to next page"},on:{"click":function($event){return _vm.goToPage(_vm.localPage + 1)}}},[_vm._v("\n        Next\n      ")])]):_vm._e()],null,{ page: _vm.localPage, perPage: _vm.localPerPage, lastPage: _vm.lastPage, goToPage: _vm.goToPage })],2)};
   var __vue_staticRenderFns__$a = [];
 
     /* style */
     var __vue_inject_styles__$g = function (inject) {
       if (!inject) { return }
-      inject("data-v-580a3ba3_0", { source: ".vts-table{overflow-x:auto}@media (min-width:400px){.vts-table{display:block}.lists-container{display:none}}", map: undefined, media: undefined });
+      inject("data-v-3a03c334_0", { source: ".vts-table table{width:100%;table-layout:fixed}.vts-table__pages,.vts-table__pagination{display:flex}.vts-table__pagination{align-items:center;justify-content:center}.vts-table__page-item,.vts-table__pages{display:contents;list-style-type:none}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -3617,17 +3725,20 @@
   var script$h = {
     name: 'VTabs',
 
+    model: {
+      prop: 'active',
+      event: 'change',
+    },
+
     props: {
-      /**
-       * Support for aria-label attribute
-       */
+      active: {
+        type: Number,
+        default: 0,
+      },
       label: {
         type: String,
         default: undefined,
       },
-      /**
-       * Support for aria-orientation attribute
-       */
       orientation: {
         type: String,
         default: 'horizontal',
@@ -3639,9 +3750,11 @@
       },
     },
 
-    data: function () { return ({
-      activeIndex: 0,
-    }); },
+    data: function data() {
+      return {
+        activeIndex: this.active,
+      };
+    },
 
     computed: {
       tablist: function tablist() {
@@ -3649,10 +3762,17 @@
       },
     },
 
+    watch: {
+      active: function active(next) {
+        this.activeIndex = Math.max(0, Math.min(this.tablist.length - 1, next));
+      },
+      activeIndex: function activeIndex(next) {
+        this.$emit('change', next);
+      },
+    },
+
     created: function created() {
-      var ref = this.$attrs;
-      var id = ref.id;
-      this.id = id ? id : ("vts-" + (randomString(4)));
+      this.id = this.$attrs.id || ("vts-" + (randomString(4)));
     },
 
     methods: {
@@ -3734,7 +3854,21 @@
   var __vue_script__$h = script$h;
 
   /* template */
-  var __vue_render__$b = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.tablist.length)?_c('div',{class:['vts-tabs', _vm.classes.root]},[_c('div',{class:['vts-tabs__tablist', _vm.classes.tablist],attrs:{"role":"tablist","aria-label":_vm.label,"aria-orientation":_vm.orientation}},_vm._l((_vm.tablist),function(tab,index){return _c('button',{key:tab,ref:"tab",refInFor:true,class:[("vts-tabs__tab vts-tabs__tab--" + index), _vm.classes.tab],attrs:{"id":(_vm.id + "-tab-" + index),"aria-selected":index === _vm.activeIndex,"tabindex":index === _vm.activeIndex ? false : -1,"aria-controls":(_vm.id + "-panel-" + index),"role":"tab"},on:{"keydown":_vm.onKeydown,"click":function($event){_vm.activeIndex = index;}}},[_vm._v("\n      "+_vm._s(tab)+"\n    ")])}),0),_vm._v(" "),_vm._l((_vm.tablist),function(tab,index){return _c('div',{key:tab,class:[("vts-tabs__panel vts-tabs__panel--" + index), _vm.classes.panel],attrs:{"id":(_vm.id + "-panel-" + index),"aria-labelledby":(_vm.id + "-tab-" + index),"hidden":index !== _vm.activeIndex,"tabindex":"0","role":"tabpanel"}},[_vm._t(tab)],2)})],2):_vm._e()};
+  var __vue_render__$b = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.tablist.length)?_c('div',{class:['vts-tabs', _vm.classes.root]},[_c('div',{class:['vts-tabs__tablist', _vm.classes.tablist],attrs:{"role":"tablist","aria-label":_vm.label,"aria-orientation":_vm.orientation}},_vm._l((_vm.tablist),function(tab,index){
+  var _obj;
+  return _c('button',{key:tab,ref:"tab",refInFor:true,class:[
+          ("vts-tabs__tab vts-tabs__tab--" + index),
+          ( _obj = {
+            'vts-tabs__tab--active': index === _vm.activeIndex
+          }, _obj[_vm.classes.tabActive] = index === _vm.activeIndex, _obj ),
+          _vm.classes.tab ],attrs:{"id":(_vm.id + "-tab-" + index),"aria-selected":index === _vm.activeIndex,"tabindex":index === _vm.activeIndex ? false : -1,"aria-controls":(_vm.id + "-panel-" + index),"role":"tab","type":"button"},on:{"keydown":_vm.onKeydown,"click":function($event){_vm.activeIndex = index;}}},[_vm._v("\n      "+_vm._s(tab)+"\n    ")])}),0),_vm._v(" "),_vm._l((_vm.tablist),function(tab,index){
+        var _obj;
+  return _c('div',{key:tab,class:[
+        ("vts-tabs__panel vts-tabs__panel--" + index),
+        ( _obj = {
+          'vts-tabs__panel--active': index === _vm.activeIndex
+        }, _obj[_vm.classes.panelActive] = index === _vm.activeIndex, _obj ),
+        _vm.classes.panel ],attrs:{"id":(_vm.id + "-panel-" + index),"aria-labelledby":(_vm.id + "-tab-" + index),"hidden":index !== _vm.activeIndex,"tabindex":"0","role":"tabpanel"}},[_vm._t(tab)],2)})],2):_vm._e()};
   var __vue_staticRenderFns__$b = [];
 
     /* style */
@@ -3839,13 +3973,13 @@
   var __vue_script__$i = script$i;
 
   /* template */
-  var __vue_render__$c = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{class:['vts-toggle', { 'vts-toggle--open': _vm.isOpen }, _vm.classes.root]},[_c('button',_vm._g({ref:"label",class:['vts-toggle__label', _vm.classes.label],attrs:{"type":"button","id":(_vm.id + "-label"),"disabled":_vm.disabled,"aria-controls":(_vm.id + "-content"),"aria-expanded":String(_vm.isOpen)},on:{"click":function($event){_vm.isOpen = !_vm.isOpen;}}},_vm.$listeners),[_vm._v("\n    "+_vm._s(_vm.label)+"\n\n    "),_vm._t("label",null,null,{ isOpen: _vm.isOpen })],2),_vm._v(" "),_c('transition',{on:{"before-enter":_vm.collapse,"enter":_vm.expand,"after-enter":_vm.resetHeight,"before-leave":_vm.expand,"leave":_vm.collapse}},[_c('div',{directives:[{name:"show",rawName:"v-show",value:(_vm.isOpen && !_vm.disabled),expression:"isOpen && !disabled"}],class:['vts-toggle__content', _vm.classes.content],attrs:{"id":(_vm.id + "-content"),"aria-labelledby":(_vm.id + "-label"),"aria-hidden":!_vm.isOpen,"role":"region"}},[_vm._t("default",null,null,{ isOpen: _vm.isOpen })],2)])],1)};
+  var __vue_render__$c = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{class:['vts-toggle', { 'vts-toggle--open': _vm.isOpen }, _vm.classes.root]},[_c('button',_vm._g({ref:"label",class:['vts-toggle__label', _vm.classes.label],attrs:{"id":(_vm.id + "-label"),"type":"button","disabled":_vm.disabled,"aria-controls":(_vm.id + "-content"),"aria-expanded":String(_vm.isOpen)},on:{"click":function($event){_vm.isOpen = !_vm.isOpen;}}},_vm.$listeners),[_vm._v("\n    "+_vm._s(_vm.label)+"\n\n    "),_vm._t("label",null,null,{ isOpen: _vm.isOpen })],2),_vm._v(" "),_c('transition',{on:{"before-enter":_vm.collapse,"enter":_vm.expand,"after-enter":_vm.resetHeight,"before-leave":_vm.expand,"leave":_vm.collapse}},[_c('div',{directives:[{name:"show",rawName:"v-show",value:(_vm.isOpen && !_vm.disabled),expression:"isOpen && !disabled"}],class:['vts-toggle__content', _vm.classes.content],attrs:{"id":(_vm.id + "-content"),"aria-labelledby":(_vm.id + "-label"),"aria-hidden":!_vm.isOpen,"role":"region"}},[_vm._t("default",null,null,{ isOpen: _vm.isOpen })],2)])],1)};
   var __vue_staticRenderFns__$c = [];
 
     /* style */
     var __vue_inject_styles__$i = function (inject) {
       if (!inject) { return }
-      inject("data-v-01f8da01_0", { source: ".vts-toggle__content{transition:.3s ease height}", map: undefined, media: undefined });
+      inject("data-v-5e01b881_0", { source: ".vts-toggle__content{transition:.3s ease height}", map: undefined, media: undefined });
 
     };
     /* scoped */
@@ -4013,16 +4147,16 @@
       return !this.stopPropagation;
     },
 
-    render: function render(h) {
+    render: function render() {
       var ref = this;
       var error = ref.error;
       var $scopedSlots = ref.$scopedSlots;
 
       if (error && $scopedSlots.catch) {
-        return safeSlot(h, $scopedSlots.catch(error));
+        return $scopedSlots.catch(error);
       }
 
-      return safeSlot(h, $scopedSlots.default(error));
+      return $scopedSlots.default(error);
     },
   };
 
@@ -4060,7 +4194,7 @@
       undefined
     );
 
-  var components = /*#__PURE__*/Object.freeze({
+  var allComponents = /*#__PURE__*/Object.freeze({
     __proto__: null,
     VAction: __vue_component__,
     VAlert: __vue_component__$1,
@@ -4176,7 +4310,7 @@
    * mask?
    */
 
-  var filters = /*#__PURE__*/Object.freeze({
+  var allFilters = /*#__PURE__*/Object.freeze({
     __proto__: null,
     capitalize: capitalize,
     currency: currency,
@@ -4187,14 +4321,274 @@
   });
 
   /**
-   * @typedef {Array<'VAction'|'VAlert'|'VAsync'|'VBtn'|'VDate'|'VDialog'|'VDrawer'|'VDropdown'|'VFile'|'VForm'|'VImg'|'VInput'|'VIntersect'|'VResize'|'VSkip'|'VTable'|'VTabs'|'VToggle'|'VTooltip'|'VTry'>} ComponentsList
-   * @typedef {Array<'autofocus'|'clickout'|'copy'|'intersect'>} DirectivesList
-   * @typedef {Array<'capitalize'|'currency'|'number'|'placeholder'|'plural'|'truncate'>} FiltersList
-   *
+   * @param {Promise | (() => Promise)} [promise]
+   * @param {object} [options = {}]
+   * @param {any} [options.placeholder] The initial results value
+   * @param {any} [options.default] The default value if the resolved value is `undefined`
+   * @param {Function} [options.onChange]
+   * @param {Function} [options.onPending]
+   * @param {Function} [options.onResolve]
+   * @param {Function} [options.onReject]
+   * @return { typeof state & { watch: typeof watch} }
+   */
+  function usePromise(promise, options) {
+    if ( options === void 0 ) options = {};
+
+    var state = compositionApi.reactive({
+      pending: false,
+      results: options.placeholder || null,
+      error: null,
+    });
+
+    /**
+     * @param {Promise | (() => Promise)} promise
+     * @return {Promise<void>}
+     */
+    var watch = async function watch(promise) {
+      promise = typeof promise === 'function' ? promise() : promise;
+      if (!promise || !promise.then) { return; }
+
+      state.pending = true;
+      options.onChange && options.onChange({
+        pending: state.pending,
+        results: state.results,
+        error: state.error,
+      });
+      options.onPending && options.onPending(state.pending);
+
+      try {
+        var resolved = await promise;
+        
+        if (resolved !== undefined) {
+          state.results = resolved;
+        } else if (options.default !== undefined) {
+          state.results = options.default;
+        } else {
+          state.results = null;
+        }
+        
+        options.onResolve && options.onResolve(state.results);
+      } catch (error) {
+        if (error instanceof Error) {
+          state.error = {
+            name: error.name,
+            message: error.message,
+          };
+        } else {
+          state.error = error;
+        }
+        console.error(error);
+        options.onReject && options.onReject(state.error);
+      } finally {
+        state.pending = false;
+        options.onChange && options.onChange({
+          pending: state.pending,
+          results: state.results,
+          error: state.error,
+        });
+        options.onPending && options.onPending(state.pending);
+      }
+    };
+
+    if (promise) {
+      watch(promise);
+    }
+
+    return Object.assign(state, { watch: watch });
+  }
+
+  /**
+   * @typedef {import('@vue/composition-api').Ref<HTMLFormElement>} FormRef
+   * @typedef {import('@vue/composition-api').ComputedRef} ComputedRef
+   * @typedef {string | ((string) => string)} ErrorMessage
    * @typedef {{
-   * components: ComponentsList,
-   * directives: DirectivesList,
-   * filters: FiltersList
+   * value: string
+   * valid: boolean
+   * dirty: boolean
+   * invalid: {
+   *    type: boolean
+   *    required: boolean
+   *    minlength: boolean
+   *    maxlength: boolean
+   *    min: boolean
+   *    max: boolean
+   *    pattern: boolean
+   * }
+   * errors: any[]
+   * }} FormInputState
+   */
+
+  /**
+   * @param {FormRef} formRef
+   * @param {{
+   * errors?:  {
+   *   type?: ErrorMessage
+   *   required?: ErrorMessage
+   *   minlength?: ErrorMessage
+   *   maxlength?: ErrorMessage
+   *   min?: ErrorMessage
+   *   max?: ErrorMessage
+   *   pattern?: ErrorMessage
+   * }
+   * }} options
+   */
+  var useForm = function (formRef, options) {
+    if ( options === void 0 ) options = {};
+
+    var baseState = {
+      invalid: false,
+      dirty: false,
+      /** @type {boolean | ComputedRef} */
+      error: false,
+      /** @type {Record<string, FormInputState>} */
+      inputs: {},
+    };
+
+    /**
+     * @typedef {object} FormMethods
+     * @property {Function} clear Assigns all form input values to empty strings
+     * @property {Function} validate
+     * @property {Function} reset Resets form dirty state and calls validate()
+     */
+
+    /**
+     * @type {typeof baseState & Partial<FormMethods>}
+     */
+    var state = compositionApi.reactive(baseState);
+
+    var errors = new Map(Object.entries(options.errors || {}));
+
+    var validate = async function (form) {
+      if (!form) { return; }
+
+      await compositionApi.nextTick();
+
+      state.invalid = !form.checkValidity();
+
+      /** @type {HTMLInputElement[]} */
+      var els = form.querySelectorAll('input, textarea, select');
+      /** @type {typeof baseState.inputs} */
+      var inputs = {};
+
+      els.forEach(function (input) {
+        var name = input.name;
+        var id = input.id;
+        var validity = input.validity;
+        var inputId = name || id;
+
+        if (!inputId) { return; }
+
+        var inputStatus = {
+          value: input.value,
+          valid: validity.valid,
+          dirty: false,
+          invalid: {
+            type: validity.typeMismatch,
+            required: validity.valueMissing,
+            minlength: validity.tooShort,
+            maxlength: validity.tooLong,
+            min: validity.rangeOverflow,
+            max: validity.rangeUnderflow,
+            pattern: validity.patternMismatch,
+          },
+          errors: [],
+        };
+
+        errors.forEach(function (value, key) {
+          if (!inputStatus.invalid[key]) { return; }
+
+          var errorHandler = errors.get(key);
+          var attrName = key.replace('length', 'Length'); // for minLength and maxLength
+
+          var errorMessage =
+            typeof errorHandler === 'string'
+              ? errorHandler
+              : errorHandler(input[attrName]);
+
+          inputStatus.errors.push(errorMessage);
+        });
+
+        // Weird reactivity issue means we have to handle dirty state this way
+        inputStatus.dirty = state.inputs[inputId]
+          ? state.inputs[inputId].dirty
+          : false;
+
+        inputs[inputId] = inputStatus;
+      });
+      state.inputs = inputs;
+    };
+
+    var onInput = function () { return validate(formRef.value); };
+    var onBlur = function (event) {
+      validate(formRef.value);
+      var input = event.target;
+      var inputId = input.name || input.id;
+
+      state.dirty = true;
+
+      if (!inputId) { return; }
+      if (!state.inputs[inputId]) { return; }
+
+      state.inputs[inputId].dirty = true;
+    };
+    var observer = new MutationObserver(onInput);
+
+    compositionApi.watch(formRef, async function (form, prev, onInvalidate) {
+      if (!form) { return; }
+      await compositionApi.nextTick();
+
+      validate(form);
+
+      form.addEventListener('input', onInput);
+      form.addEventListener('blur', onBlur, {
+        capture: true,
+      });
+
+      observer.observe(form, {
+        childList: true,
+        subtree: true,
+        // attributes: true, // TODO: hy does this cause infinite loop?
+      });
+
+      onInvalidate(function () {
+        form.removeEventListener('input', onInput);
+        form.removeEventListener('blur', onBlur);
+        observer.disconnect();
+      });
+    });
+
+    state.error = compositionApi.computed(function () { return state.invalid && state.dirty; });
+    state.validate = function () { return validate(formRef.value); };
+    state.reset = function () {
+      state.dirty = false;
+      validate(formRef.value);
+    };
+    state.clear = function () {
+      var form = formRef.value;
+      /** @type {NodeListOf<HTMLInputElement>} */
+      var inputs = form.querySelectorAll('input, textarea, select');
+      inputs.forEach(function (input) {
+        input.value = '';
+      });
+    };
+
+    return state;
+  };
+
+  /**
+   * TODO:
+   * Provide config options for library/components
+   * Finish up rebuilding table
+   * Get rid of auto safe slot (breaking)
+   * Create main.css file
+   * Prop warning messages (img alt, input label)
+   */
+
+  /**
+   * @typedef {{
+   * components?: Partial<Record<keyof allComponents, Record<string, any> | boolean>>,
+   * directives?: Record<keyof allDirectives, Record<string, any> | boolean>,
+   * filters?: Record<keyof allFilters, Record<string, any> | boolean>
    * }} VuetensilsConfig
    */
 
@@ -4202,26 +4596,53 @@
   var entry = {
     /**
      * @param {*} Vue Vue instance
-     * @param {VuetensilsConfig} config Vuetensils configuration
+     * @param {VuetensilsConfig} [pluginConfig] Vuetensils configuration
      */
-    install: function install(Vue, config) {
-      if (!config) { return; }
+    install: function install(Vue, pluginConfig) {
+      if ( pluginConfig === void 0 ) pluginConfig = {};
 
-      if (config.components) {
-        config.components.forEach(function (item) {
-          Vue.component(item, components[item]);
+      if (pluginConfig.components) {
+        if(Array.isArray(pluginConfig.components)) {
+          pluginConfig.components = pluginConfig.components.reduce(function (config, key) {
+            config[key] = true;
+            return config;
+          }, {});
+        }
+        Object.entries(pluginConfig.components).forEach(function (entry) {
+          var key = entry[0];
+          var options = entry[1];
+          var component = allComponents[key];
+          // @ts-ignore
+          var name = typeof options === 'boolean' ? options.name || key : key;
+          Vue.component(name, component);
         });
       }
 
-      if (config.directives) {
-        config.directives.forEach(function (item) {
-          Vue.directive(item, directives[item]);
+      if (pluginConfig.directives) {
+        if(Array.isArray(pluginConfig.directives)) {
+          pluginConfig.directives = pluginConfig.directives.reduce(function (config, key) {
+            config[key] = true;
+            return config;
+          }, {});
+        }
+        Object.entries(pluginConfig.directives).forEach(function (entry) {
+          var key = entry[0];
+          var directive = allDirectives[key];
+          Vue.directive(key, directive);
         });
       }
 
-      if (config.filters) {
-        config.filters.forEach(function (item) {
-          Vue.filter(item, filters[item]);
+      if (pluginConfig.filters) {
+        if(Array.isArray(pluginConfig.filters)) {
+          pluginConfig.filters = pluginConfig.filters.reduce(function (config, key) {
+            config[key] = true;
+            return config;
+          }, {});
+        }
+        Object.entries(pluginConfig.filters).forEach(function (entry) {
+          var key = entry[0];
+          var filter = allFilters[key];
+          Vue.filter(key, filter);
         });
       }
     }
@@ -4259,6 +4680,8 @@
   exports.placeholder = placeholder;
   exports.plural = plural;
   exports.truncate = truncate;
+  exports.useAsync = usePromise;
+  exports.useForm = useForm;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

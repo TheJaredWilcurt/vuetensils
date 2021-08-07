@@ -1,8 +1,13 @@
 {
   "name": "vuetensils",
-  "version": "1.0.0-0",
-  "description": "A tasty toolset for Vue.js",
-  "author": "Austin Gil <austin@stegosource.com>",
+  "version": "0.8.0",
+  "description": "A \"naked\" component library for building accessible, lightweight, on-brand applications.",
+  "author": {
+    "name": "Austin Gil",
+    "email": "hey@austingil.com",
+    "url": "https://austingil.com"
+  },
+  "homepage": "https://vuetensils.stegosource.com",
   "license": "MIT",
   "main": "dist/vuetensils.umd.js",
   "module": "dist/vuetensils.esm.js",
@@ -14,12 +19,14 @@
   "typings": "types",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Stegosource/vuetensils.git"
+    "url": "git+https://github.com/AustinGil/vuetensils.git"
   },
   "scripts": {
     "dev": "npm run docs:dev",
     "test": "npm run test:unit",
     "test:unit": "jest --coverage",
+    "testing": "jest --watch",
+    "pa11y": "concurrently -k \"npm run docs:dev\" \"wait-on http://localhost:8080 && pa11y-ci --config=.pa11yci.js\"",
     "lint": "eslint --no-error-on-unmatched-pattern src/**/*.{js,ts,vue,tsx,jsx,css,scss,md} docs/**/*.{js,ts,vue,tsx,jsx,css,scss,md}",
     "lint:diff": "eslint $(git diff --name-only -- src/*.vue src/*.js docs/*.vue docs/*.js)",
     "ts": "tsc",
@@ -31,7 +38,8 @@
     "docs:dev": "vuepress dev docs",
     "docs:build": "vuepress build docs",
     "commit": "git add . && git commit",
-    "release": "release-it"
+    "release": "release-it",
+    "deploy": "release-it"
   },
   "husky": {
     "hooks": {
@@ -40,7 +48,7 @@
   },
   "lint-staged": {
     "*.{js,ts,vue}": [
-      "npm run lint -- --fix",
+      "eslint --fix",
       "git add"
     ]
   },
@@ -68,26 +76,34 @@
       "http://localhost:8080/directives/intersect.html#default-behavior"
     ]
   ],
-  "dependencies": {},
   "devDependencies": {
     "@babel/core": "^7.11.1",
     "@babel/preset-env": "^7.11.0",
     "@commitlint/cli": "^9.1.1",
     "@commitlint/config-conventional": "^9.1.1",
     "@commitlint/prompt": "^9.1.1",
+    "@rollup/plugin-buble": "^0.21.3",
     "@rollup/plugin-commonjs": "^14.0.0",
+    "@testing-library/jest-dom": "^5.11.8",
+    "@testing-library/user-event": "^12.6.0",
+    "@testing-library/vue": "^5.6.1",
+    "@vue/server-test-utils": "^1.1.2",
     "@vue/test-utils": "^1.0.3",
     "@vuepress/plugin-google-analytics": "^1.5.3",
     "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "^10.1.0",
     "babel-jest": "^26.3.0",
     "babel-loader": "^8.1.0",
-    "commitizen": "^4.1.2",
+    "commitizen": "^4.2.1",
+    "concurrently": "^5.3.0",
     "cz-conventional-changelog": "^3.2.0",
     "eslint": "^7.6.0",
+    "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-jest": "^23.20.0",
+    "eslint-plugin-jest-dom": "^3.6.5",
     "eslint-plugin-jsdoc": "^30.2.1",
     "eslint-plugin-markdown": "^2.0.0-alpha.0",
+    "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-vue": "^7.0.0-beta.2",
     "eslint-plugin-vuejs-accessibility": "^0.3.1",
     "husky": "^4.2.5",
@@ -95,9 +111,9 @@
     "jest-serializer-vue-tjw": "^3.14.0",
     "lint-staged": "^10.2.11",
     "minimist": "^1.2.5",
+    "pa11y-ci": "^2.4.0",
     "release-it": "^13.6.6",
     "rollup": "^2.23.1",
-    "rollup-plugin-buble": "^0.19.8",
     "rollup-plugin-filesize": "^9.0.2",
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-uglify-es": "0.0.1",
@@ -105,12 +121,15 @@
     "stylelint": "^13.6.1",
     "stylelint-config-sass-guidelines": "^7.0.0",
     "typescript": "^3.9.7",
+    "vue": "^2.6.12",
     "vue-docgen-api": "^4.30.0",
     "vue-jest": "^3.0.6",
     "vue-router": "^3.4.2",
+    "vue-template-compiler": "^2.6.12",
     "vuepress": "^1.5.3",
     "vuepress-plugin-docgen": "^1.2.9",
-    "vuepress-plugin-live": "^1.4.2"
+    "vuepress-plugin-live": "^1.4.2",
+    "wait-on": "^5.2.1"
   },
   "keywords": [
     "vue",
@@ -152,5 +171,8 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "@vue/composition-api": "^1.0.0-rc.9"
   }
 }

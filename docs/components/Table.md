@@ -4,7 +4,7 @@
 
 Takes a list of objects and a list of table headers and creates an HTML table with sorting and pagination built in.
 
-- [Source](https://github.com/Stegosource/vuetensils/blob/master/src/components/VTable/VTable.vue)
+- [Source](https://github.com/AustinGil/vuetensils/blob/master/src/components/VTable/VTable.vue)
 
 Features:
 
@@ -47,8 +47,8 @@ export default {
 <template>
   <VTable
     class="styled"
-    :headers="headers"
     :items="people"
+    :headers="headers"
   />
 </template>
 
@@ -57,37 +57,44 @@ export default {
   data: () => ({
     headers: [
       { key: 'name' },
-      { key: 'age' },
       {
-        key: 'gender',
-        sortable: false
+        key: 'age',
+        sort: true,
+      },
+      {
+        key: 'color',
+        text: 'Favorite Color',
+        sort: (a, b, isAscending) => {
+          // Random order
+          return Math.random() - .5;
+        }
       },
     ],
     people: [
       {
         name: 'Mary',
         age: 33,
-        gender: 'female'
+        color: 'red'
       },
       {
         name: 'Bob',
         age: 56,
-        gender: 'male'
+        color: 'green'
       },
       {
         name: 'Ivana',
         age: 12,
-        gender: 'female'
+        color: 'blue'
       },
       {
         name: 'Jeremy',
         age: 8,
-        gender: 'male'
+        color: 'orange'
       },
       {
         name: 'Cassie',
         age: 45,
-        gender: 'female'
+        color: 'purple'
       },
     ],
   }),
